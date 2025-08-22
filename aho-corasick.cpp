@@ -2,86 +2,52 @@
 
 using namespace std;
 
-constexpr int ALPH_SIZE = 'z' - 'a' + 1;
-constexpr char START = 'a';
-
 struct Node {
-    char c;
-    bool is_term;
-    vector<int> ind;
-    Node *parent;
-    Node *suff;
-    Node *term;
-    Node *children[ALPH_SIZE]{};
-
-    Node() {
-        c = '\0';
-        is_term = false;
-        ind = {};
-        parent = nullptr;
-        suff = nullptr;
-        term = nullptr;
-        for (auto &i: children) {
-            i = nullptr;
-        }
-    }
-
-    Node(char c, Node *parent) : c(c), parent(parent) {
-        is_term = false;
-        ind = {};
-        suff = nullptr;
-        term = nullptr;
-        for (auto &i: children) {
-            i = nullptr;
-        }
-    }
+    int go[26] = {};
+    int suff, term_suff;
+    bool term;
+    vector<pair <int, int>> ind;
+    Node() : suff(0), term_suff(0), term(false) {}
 };
 
-Node *init() {
-    Node *root = new Node;
-    root->suff = root;
-    return root;
-}
-
-void add_word(Node *root, const string &s, int ind) {
-    Node *cur = root;
-    for (auto c: s) {
-        if (!cur->children[c - START]) {
-            cur->children[c - START] = new Node(c, cur);
+Node trie[(int)1e6 + 1];
+int last = 1;
+void add_string(const string &s, int cur, int ind) {
+    for (const auto ch: s) {
+        if (!trie[cur].go[ch - 'a']) {
+            trie[cur].go[ch - 'a'] = trie.size();
+            trie.emplace_back();
         }
-        cur = cur->children[c - START];
+        cur = trie[cur].go[ch - 'a'];
     }
-    cur->is_term = true;
-    cur->ind.push_back(ind);
+    trie[cur].term = true;
+    trie[cur].ind.push_back({ind, 1});
 }
 
-Node *move(Node *cur, char c);
-
-Node *get_suff(Node *cur) {
-    if (cur->suff) {
-        return cur->suff;
+void suff_build(const int root) {
+    queue <int> q;
+    trie[root].suff = root;
+    for (int c = 0; c < 26; c++) {
+        if (trie[root].go[c]) {
+            trie[root].go[c] = trie[root].go[c];
+            trie[trie[root].go[c]].suff = root;
+            q.push(trie[root].go[c]);
+        } else {
+            trie[root].go[c] = root;
+        }
     }
-    if (!cur->parent->parent) {
-        cur->suff = cur->parent;
-    } else {
-        cur->suff = move(get_suff(cur->parent), cur->c);
+    while (!q.empty()) {
+        const auto v = q.front();
+        q.pop();
+        for (int c = 0; c < 26; ++c) {
+            if (trie[v].go[c]) {
+                trie[trie[v].go[c]].suff = trie[trie[v].suff].go[c];
+                if (trie[trie[trie[v].go[c]].suff].term) trie[trie[v].go[c]].term_suff = trie[trie[v].go[c]].suff;
+                else trie[trie[v].go[c]].term_suff = trie[trie[trie[v].go[c]].suff].term_suff;
+                q.push(trie[v].go[c]);
+            } else {
+                trie[v].go[c] = trie[trie[v].suff].go[c];
+            }
+        }
     }
-    get_suff(cur->suff);
-    if (cur->suff->is_term) {
-        cur->term = cur->suff;
-    } else {
-        cur->term = cur->suff->term;
-    }
-
-    return cur->suff;
-}
-
-Node *move(Node *cur, char c) {
-    if (cur->children[c - START]) {
-        return cur->children[c - START];
-    }
-    if (!cur->parent) {
-        return cur;
-    }
-    return cur->children[c - START] = move(get_suff(cur), c);
 }

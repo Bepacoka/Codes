@@ -46,3 +46,34 @@ vector <int> build_suffarray(const string &s) { // s += '#'
     }
     return pos;
 }
+
+vector <int> kasai(string &s, vector<int> &arr, vector<int> &index) {
+    int k = 0;
+    vector <int> lcp(s.size() - 1);
+    for (int i = 0; i < s.size() - 1; i++) {
+        int pos = index[i];
+        if (k > 0) k--;
+        while (s[(arr[pos - 1] + k)] == s[(arr[pos] + k)]) k++;
+        lcp[pos - 1] = k;
+    }
+    return lcp;
+}
+
+signed main() {
+    int n;
+    cin >> n;
+    string s;
+    cin >> s;
+    s += '#';
+    vector <int> suffarray(n + 1);
+    suffarray[0] = n;
+    for (int i = 1; i <= n; i++) {
+        cin >> suffarray[i];
+        suffarray[i]--;
+    }
+//    auto suffarray = build_suffarray(s);
+    vector <int> index(s.size());
+    for (int i = 0; i < s.size(); i++) index[suffarray[i]] = i;
+    auto lcp = kasai(s, suffarray, index);
+    for (int i = 1; i < lcp.size(); i++) cout << lcp[i] << endl;
+}
